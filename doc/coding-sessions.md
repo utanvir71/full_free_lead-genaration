@@ -29,7 +29,7 @@ Current status:
 | Phase 2: OpenStreetMap Discovery and Safe Crawling | `done` | Completed through `1242a36`; 74 tests passed, Ruff passed, and mypy passed. |
 | Phase 3: Evidence Extraction, Contact Validation, and Scoring | `done` | Completed through `a43fbc5`; 95 tests passed, Ruff passed, and mypy passed. |
 | Phase 4: Pipeline, Recovery, Exports, and Drafting | `done` | Completed through `a312aad`; 109 tests passed, Ruff passed, and mypy passed. |
-| Phase 5: Local Review Interface and Release Verification | `next session` | Start Tasks 28–34 in the next coding context window. |
+| Phase 5: Local Review Interface and Release Verification | `done` | Completed through `50aa89d`; 126 tests passed, Ruff passed, mypy passed, and Playwright passed. All planned phases are complete; no next session remains. |
 
 After finishing any phase, update this status tracker before ending the
 session:
@@ -510,6 +510,52 @@ Record:
 - Browser workflow proved.
 - Live smoke result if the user explicitly authorized it.
 - Final release commit and artifact locations.
+
+### Phase 5 Completion Record
+
+**Completion commit:** `50aa89d`
+
+**Task commits:**
+
+- Task 28: `8cd3f77` (`feat: add local run dashboard`)
+- Task 29: `a9d3fdb` (`feat: display durable run progress`)
+- Task 30: `6767312` (`feat: add evidence-first lead review`)
+- Task 31: `cd0708b` (`feat: track manual lead review status`)
+- Task 32: `e13ab45` (`feat: review drafts and download lead exports`)
+- Task 33: `198933f` (`test: cover complete local operator workflow`)
+- Task 33 recovery coverage: `50aa89d` (`test: prove interrupted-run review recovery`)
+- Task 34: `0350185` (`docs: verify local lead generator release`)
+
+**Exact final verification:**
+
+```text
+.venv/bin/pytest -q
+126 passed in 4.36s
+
+.venv/bin/ruff check .
+All checks passed!
+
+.venv/bin/mypy app
+Success: no issues found in 74 source files
+
+.venv/bin/pytest tests/e2e -q
+1 passed in 1.52s
+
+git diff --check
+Passed with no output.
+```
+
+Playwright covered a localhost browser creating a run, refreshing persisted
+state, reviewing evidence, adding a note, changing a manual status, inspecting
+a local draft, and downloading both CSVs. Fixture integration tests proved that
+completed and interrupted partial results remain reviewable after an application
+restart. Host, Origin, CSRF, CSP, SSRF/redirect, robots, and draft-grounding
+checks passed. No Gmail, SMTP, sending, paid provider, or guessed contact was
+added.
+
+The live smoke procedure was not run because it is explicitly opt-in and no
+separate authorization for a live Overpass request was given. Its bounded,
+zero-outreach procedure is documented in `docs/release-checklist.md`.
 
 ## New-Session Prompt
 

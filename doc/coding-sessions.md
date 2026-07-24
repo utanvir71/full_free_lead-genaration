@@ -27,8 +27,8 @@ Current status:
 | --- | --- | --- |
 | Phase 1: Foundation, Domain, and Persistence | `done` | Completed through `748db6f`; 49 tests passed, Ruff passed, and mypy passed. |
 | Phase 2: OpenStreetMap Discovery and Safe Crawling | `done` | Completed through `1242a36`; 74 tests passed, Ruff passed, and mypy passed. |
-| Phase 3: Evidence Extraction, Contact Validation, and Scoring | `next session` | Start Tasks 14–20 in the next coding context window. |
-| Phase 4: Pipeline, Recovery, Exports, and Drafting | `in queue` | Start only after Phase 3 is done and verified. |
+| Phase 3: Evidence Extraction, Contact Validation, and Scoring | `done` | Completed through `a43fbc5`; 95 tests passed, Ruff passed, and mypy passed. |
+| Phase 4: Pipeline, Recovery, Exports, and Drafting | `next session` | Start Tasks 21–27 in the next coding context window. |
 | Phase 5: Local Review Interface and Release Verification | `in queue` | Start only after Phase 4 is done and verified. |
 
 After finishing any phase, update this status tracker before ending the
@@ -313,6 +313,44 @@ Record:
 - Exact scoring table coverage.
 - Contact exclusion and validation cases.
 - Versioned signal thresholds implemented.
+
+### Phase 3 Completion Record
+
+**Completion commit:** `a43fbc5`
+
+**Task commits:**
+
+- Task 14: `7449dea` (`feat: create stable website evidence`)
+- Task 14 fix: `0411ac5` (`fix: preserve text after hidden void elements`)
+- Task 15: `e3ec906` (`feat: extract restaurant and reservation facts`)
+- Task 15 fix: `fc0c399` (`fix: extract semantic business HTML`)
+- Task 16: `0484f5b` (`feat: extract only public business contacts`)
+- Task 17: `be1835c` (`feat: validate public email infrastructure`)
+- Task 18: `bfbf1af` (`feat: capture official decision-maker evidence`)
+- Task 19: `f5e086b` (`feat: derive versioned receptionist pain signals`)
+- Task 20: `a43fbc5` (`feat: apply exact evidence-backed scoring`)
+
+**Exact final verification:**
+
+```text
+.venv/bin/pytest tests/adapters/extraction tests/adapters/validation tests/domain/test_scoring.py tests/application/test_qualification.py -q
+21 passed in 0.21s
+
+.venv/bin/pytest -q
+95 passed in 0.75s
+
+.venv/bin/ruff check .
+All checks passed!
+
+.venv/bin/mypy app
+Success: no issues found in 50 source files
+
+git diff --check
+Passed with no output.
+```
+
+Playwright was not required for Phase 3. Tests used fixtures and fakes only;
+no DNS, SMTP, Overpass, website, or other live network request was made.
 
 ## Phase 4: Pipeline, Recovery, Exports, and Drafting
 

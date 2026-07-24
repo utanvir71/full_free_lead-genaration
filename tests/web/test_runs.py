@@ -21,6 +21,7 @@ def test_runs_dashboard_renders_local_form_and_security_headers(tmp_path: Path) 
     assert 'name="candidate_limit"' in response.text
     assert 'value="30"' in response.text
     assert "script-src 'self'" in response.headers["content-security-policy"]
+    assert f'value="{response.cookies["csrf_token"]}"' in response.text
 
 
 def test_runs_reject_invalid_input_without_creating_a_run(tmp_path: Path) -> None:
@@ -78,6 +79,27 @@ def test_runs_rejects_cross_origin_or_missing_csrf(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 403
+
+
+def test_runs_rejects_an_untrusted_host_even_when_origin_matches(
+    tmp_path: Path,
+) -> None:
+    client = make_client(tmp_path)
+    response = client.get("/runs", headers={"Host": "evil.invalid"})
+    token = response.cookies.get("csrf_token", "")
+
+    rejected = client.post(
+        "/runs",
+        data={
+            "city": "Austin",
+            "state": "TX",
+            "candidate_limit": "30",
+            "csrf_token": token,
+        },
+        headers={"Host": "evil.invalid", "Origin": "http://evil.invalid"},
+    )
+
+    assert rejected.status_code == 400
 
 
 def test_runs_serves_local_styles_without_a_cdn(tmp_path: Path) -> None:

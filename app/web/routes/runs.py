@@ -10,7 +10,7 @@ from sqlalchemy import select
 
 from app.application.runs import ActiveRunError, RunService
 from app.db import schema
-from app.web.security import verify_csrf
+from app.web.security import csrf_token_for, verify_csrf
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/web/templates")
@@ -38,7 +38,7 @@ def _render_index(
             "runs": _run_history(request),
             "errors": errors or [],
             "values": values or {"city": "", "state": "", "candidate_limit": "30"},
-            "csrf_token": request.cookies.get("csrf_token", ""),
+            "csrf_token": csrf_token_for(request),
         },
         status_code=status_code,
     )

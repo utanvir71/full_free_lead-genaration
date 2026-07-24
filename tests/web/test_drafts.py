@@ -54,3 +54,5 @@ def test_draft_review_is_local_and_has_no_send_surface(tmp_path: Path) -> None:
     detail = client.get("/drafts/d1")
     assert "A grounded draft" in detail.text
     assert "send" not in detail.text.lower()
+    assert "onclick=" not in detail.text
+    assert 'src="/static/drafts.js"' in detail.text

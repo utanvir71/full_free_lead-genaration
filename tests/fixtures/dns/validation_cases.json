@@ -1,0 +1,6 @@
+{
+  "valid": {"syntax": "valid", "dns": "valid", "mx": "valid"},
+  "invalid_email": {"syntax": "invalid", "dns": "unknown", "mx": "unknown"},
+  "no_mx": {"syntax": "valid", "dns": "valid", "mx": "invalid"},
+  "timeout": {"syntax": "valid", "dns": "unknown", "mx": "unknown"}
+}

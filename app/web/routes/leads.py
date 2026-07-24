@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 
 from app.db import schema
+from app.web.security import csrf_token_for
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/web/templates")
@@ -126,6 +127,6 @@ def detail(request: Request, business_id: str) -> HTMLResponse:
             "pages": pages,
             "errors": errors,
             "notes": notes,
-            "csrf_token": request.cookies.get("csrf_token", ""),
+            "csrf_token": csrf_token_for(request),
         },
     )

@@ -453,16 +453,24 @@ ten drafts.
 ### 12.1 Runtime expectations
 
 Ollama is optional and manually installed by the user. The default configured
-model must be a lightweight 3B-class model appropriate for an 8 GB Apple
-Silicon Mac. The model name and local endpoint are configuration values.
+model is `gemma4:e2b-it-qat`, selected for practical performance on an 8 GB
+Apple Silicon Mac. The model name and local endpoint remain configurable.
+
+The version 1 generation defaults are:
+
+- Context window: 8,192 tokens.
+- Temperature: 0.4.
+- Maximum output: 220 tokens.
+- Request timeout: 45 seconds.
+- Concurrency: one generation request at a time.
 
 The application:
 
 - Checks local endpoint and model readiness.
 - Never installs Ollama or pulls a model.
 - Sends one request at a time.
-- Uses temperature zero and structured JSON output.
-- Uses a bounded context.
+- Uses the configured 0.4 temperature and structured JSON output.
+- Uses the configured 8,192-token bounded context.
 - Gives the model no tools and no network access.
 
 Missing Ollama is an expected operating condition, not a failed product setup.

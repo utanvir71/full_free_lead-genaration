@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<h1>Local draft review</h1><ul>{% for draft in drafts %}<li><a href="/drafts/{{ draft.id }}">{{ draft.name }}</a> — {{ draft.method }}</li>{% else %}<li>No drafts.</li>{% endfor %}</ul>{% endblock %}

@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<h1>{{ draft.subject }}</h1><p>Method: {{ draft.method }} · Validation: {{ draft.validation_state }}</p><pre>{{ draft.body }}</pre><button type="button" onclick="navigator.clipboard.writeText(document.querySelector('pre').innerText)">Copy locally</button>{% endblock %}

@@ -28,3 +28,10 @@ Start the local server:
 ```
 
 The service is intentionally bound only to `127.0.0.1`.
+
+## Configuration
+
+All settings are optional and use the safe defaults documented in
+[`.env.example`](.env.example). Configuration names use the `LEADGEN_` prefix.
+The application accepts no API key or other secret because version 1 uses only
+public OpenStreetMap infrastructure and optional local Ollama.

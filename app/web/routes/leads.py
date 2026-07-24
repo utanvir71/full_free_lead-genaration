@@ -106,6 +106,13 @@ def detail(request: Request, business_id: str) -> HTMLResponse:
             .mappings()
             .all()
         )
+        notes = (
+            connection.execute(
+                select(schema.notes).where(schema.notes.c.business_id == business_id)
+            )
+            .mappings()
+            .all()
+        )
     return templates.TemplateResponse(
         request,
         "leads/detail.html",
@@ -118,5 +125,7 @@ def detail(request: Request, business_id: str) -> HTMLResponse:
             "signals": signals,
             "pages": pages,
             "errors": errors,
+            "notes": notes,
+            "csrf_token": request.cookies.get("csrf_token", ""),
         },
     )

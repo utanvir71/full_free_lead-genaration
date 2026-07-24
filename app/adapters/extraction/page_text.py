@@ -16,6 +16,22 @@ _NON_PRIMARY_TAGS = {
     "svg",
     "template",
 }
+_VOID_TAGS = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,12 +43,12 @@ class PageText:
 class _VisibleTextParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self._hidden_depth = 0
+        self._hidden_tags: list[str] = []
         self._parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if self._hidden_depth or self._is_hidden(tag, dict(attrs)):
-            self._hidden_depth += 1
+        if tag not in _VOID_TAGS and self._is_hidden(tag, dict(attrs)):
+            self._hidden_tags.append(tag)
 
     def handle_startendtag(
         self, tag: str, attrs: list[tuple[str, str | None]]
@@ -40,12 +56,11 @@ class _VisibleTextParser(HTMLParser):
         del tag, attrs
 
     def handle_endtag(self, tag: str) -> None:
-        del tag
-        if self._hidden_depth:
-            self._hidden_depth -= 1
+        if self._hidden_tags and tag == self._hidden_tags[-1]:
+            self._hidden_tags.pop()
 
     def handle_data(self, data: str) -> None:
-        if not self._hidden_depth:
+        if not self._hidden_tags:
             self._parts.append(data)
 
     @staticmethod

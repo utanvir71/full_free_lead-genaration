@@ -25,6 +25,14 @@ def test_extract_visible_text_excludes_non_primary_and_hidden_content() -> None:
     assert "Hidden" not in page.text
 
 
+def test_extract_visible_text_preserves_content_after_hidden_void_element() -> None:
+    page = extract_visible_text(
+        "<nav><img src='logo.png'></nav><main>Primary content</main>"
+    )
+
+    assert page.text == "Primary content"
+
+
 def test_evidence_factory_bounds_excerpt_around_matched_phrase() -> None:
     html = f"<main>{'before ' * 80}Call to reserve.{' after' * 80}</main>"
     page = extract_visible_text(html)

@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<h1>Lead review</h1><p>OpenStreetMap discovery data; research is evidence-backed.</p><ul>{% for lead in leads %}<li><a href="/leads/{{ lead.id }}">{{ lead.name }}</a> — {{ lead.total }} {% if lead.qualified %}qualified{% else %}rejected{% endif %}</li>{% else %}<li>No reviewed leads yet.</li>{% endfor %}</ul>{% endblock %}

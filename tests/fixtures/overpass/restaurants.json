@@ -1,0 +1,32 @@
+{
+  "version": 0.6,
+  "elements": [
+    {
+      "type": "node",
+      "id": 101,
+      "lat": 30.2672,
+      "lon": -97.7431,
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Northstar Grill",
+        "website": "https://northstar.example"
+      }
+    },
+    {
+      "type": "way",
+      "id": 202,
+      "center": {"lat": 30.268, "lon": -97.744},
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Southside Table",
+        "contact:website": "https://southside.example"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 303,
+      "center": {"lat": 30.269, "lon": -97.745},
+      "tags": {"amenity": "restaurant", "name": "East Room"}
+    }
+  ]
+}

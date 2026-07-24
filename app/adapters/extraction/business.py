@@ -38,6 +38,7 @@ class BusinessExtractor:
         for page in pages:
             for item in _restaurant_json_ld(page.html):
                 facts.extend(self._website_facts(item, page))
+            facts.extend(self._html_facts(page))
         return facts
 
     def _osm_facts(self, candidate: Candidate, captured_at: datetime) -> list[Fact]:
@@ -110,6 +111,29 @@ class BusinessExtractor:
             for fact_type, value in values
         ]
 
+    def _html_facts(self, page: FetchedPage) -> list[Fact]:
+        parser = _BusinessMarkupParser()
+        parser.feed(page.html)
+        parser.close()
+        fact_types = {
+            "name": "name",
+            "telephone": "phone",
+            "url": "website",
+            "servescuisine": "cuisine",
+            "openinghours": "hours",
+        }
+        return [
+            self._fact(
+                fact_type=fact_types[property_name],
+                value=value,
+                source=page.url,
+                excerpt=f"HTML {property_name}: {value}",
+                captured_at=page.fetched_at,
+            )
+            for property_name, value in parser.values
+            if property_name in fact_types
+        ]
+
     def _fact(
         self,
         *,
@@ -157,6 +181,40 @@ class _JsonLdParser(HTMLParser):
             self.documents.append("".join(self._parts))
             self._parts = []
             self._in_json_ld = False
+
+
+class _BusinessMarkupParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._properties: list[tuple[str, str, list[str]]] = []
+        self.values: list[tuple[str, str]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = dict(attrs)
+        property_name = values.get("itemprop")
+        if property_name is None:
+            return
+        normalized_property = property_name.casefold()
+        self._properties.append((tag, normalized_property, []))
+        content = _text(values.get("content"))
+        if content is not None:
+            self.values.append((normalized_property, content))
+
+    def handle_data(self, data: str) -> None:
+        if self._properties:
+            for _, _, parts in self._properties:
+                parts.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if not self._properties:
+            return
+        element, property_name, parts = self._properties[-1]
+        if tag != element:
+            return
+        self._properties.pop()
+        value = _text(" ".join(parts))
+        if value is not None:
+            self.values.append((property_name, value))
 
 
 def _restaurant_json_ld(html: str) -> list[Mapping[str, object]]:
@@ -297,6 +355,6 @@ def _texts(value: object) -> list[str]:
 
 def _text(value: object) -> str | None:
     if isinstance(value, str):
-        stripped = value.strip()
+        stripped = " ".join(value.split())
         return stripped or None
     return None

@@ -110,3 +110,56 @@ def test_business_extractor_represents_missing_osm_fields_as_unknown() -> None:
         ("locations", FactState.UNKNOWN, None),
     }
     assert {fact.source for fact in facts} == {"osm:way:43"}
+
+
+def test_business_extractor_retains_semantic_html_facts_with_page_provenance() -> None:
+    candidate = Candidate(
+        osm_type="node", osm_id=44, latitude=30.2, longitude=-97.7, tags={}
+    )
+    page = FetchedPage(
+        url="https://rosa.example/contact",
+        html="""
+        <main>
+          <h1 itemprop="name">Rosa's Kitchen</h1>
+          <span itemprop="telephone">+1-512-555-0100</span>
+          <span itemprop="servesCuisine">Mexican</span>
+          <time itemprop="openingHours">Daily 11:00-22:00</time>
+        </main>
+        """,
+        http_status=200,
+        fetched_at=WEBSITE_CAPTURED_AT,
+    )
+
+    facts = BusinessExtractor().extract(candidate, (page,), captured_at=OSM_CAPTURED_AT)
+
+    assert {
+        (fact.fact_type, fact.value, fact.source)
+        for fact in facts
+        if fact.source == page.url
+    } == {
+        ("name", "Rosa's Kitchen", page.url),
+        ("phone", "+1-512-555-0100", page.url),
+        ("cuisine", "Mexican", page.url),
+        ("hours", "Daily 11:00-22:00", page.url),
+    }
+
+
+def test_business_extractor_keeps_nested_semantic_html_text() -> None:
+    candidate = Candidate(
+        osm_type="node", osm_id=45, latitude=30.2, longitude=-97.7, tags={}
+    )
+    page = FetchedPage(
+        url="https://rosa.example/contact",
+        html=(
+            '<main><span itemprop="telephone">Call '
+            '<strong>512-555-0100</strong></span></main>'
+        ),
+        http_status=200,
+        fetched_at=WEBSITE_CAPTURED_AT,
+    )
+
+    facts = BusinessExtractor().extract(candidate, (page,), captured_at=OSM_CAPTURED_AT)
+
+    assert ("phone", "Call 512-555-0100", page.url) in {
+        (fact.fact_type, fact.value, fact.source) for fact in facts
+    }

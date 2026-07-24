@@ -262,3 +262,36 @@ def test_operator_can_review_a_completed_fixture_run(tmp_path: Path) -> None:
     assert client.get(f"/runs/{run_id}/exports/rejected").text.endswith(
         "Budget Bites\n"
     )
+
+
+def test_interrupted_partial_results_survive_an_application_restart(
+    tmp_path: Path,
+) -> None:
+    settings = Settings.load({"LEADGEN_DATABASE_PATH": str(tmp_path / "db.sqlite3")})
+    client = TestClient(create_app(settings))
+    form = client.get("/runs")
+    response = client.post(
+        "/runs",
+        data={
+            "city": "Austin",
+            "state": "TX",
+            "candidate_limit": "2",
+            "csrf_token": form.cookies["csrf_token"],
+        },
+        headers={"Origin": "http://testserver"},
+        follow_redirects=False,
+    )
+    run_id = response.headers["location"].rsplit("/", maxsplit=1)[-1]
+    seed_completed_run(client.app.state.engine, run_id, tmp_path)
+    with client.app.state.engine.begin() as connection:
+        connection.execute(
+            update(schema.runs)
+            .where(schema.runs.c.id == run_id)
+            .values(status="interrupted")
+        )
+
+    restarted = TestClient(create_app(settings))
+
+    assert "interrupted" in restarted.get(f"/runs/{run_id}").text
+    assert "Elm House" in restarted.get("/leads/elm-house").text
+    assert "Elm House" in restarted.get(f"/runs/{run_id}/drafts").text

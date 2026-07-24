@@ -1,5 +1,7 @@
 from playwright.sync_api import sync_playwright
+from sqlalchemy import update
 
+from app.db import schema
 from tests.integration.test_full_pipeline import seed_completed_run
 
 
@@ -19,8 +21,15 @@ def test_operator_can_review_a_completed_run_in_local_browser(
         page.reload()
         assert page.get_by_text("running", exact=True).is_visible()
         seed_completed_run(live_app.app.state.engine, run_id, tmp_path)
+        with live_app.app.state.engine.begin() as connection:
+            connection.execute(
+                update(schema.runs)
+                .where(schema.runs.c.id == run_id)
+                .values(status="interrupted")
+            )
 
         page.reload()
+        assert page.get_by_text("interrupted", exact=True).is_visible()
         assert page.get_by_text("Qualified", exact=True).is_visible()
         page.get_by_role("link", name="Review leads").click(timeout=1_000)
         page.get_by_role("link", name="Elm House").click()

@@ -26,8 +26,8 @@ Current status:
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Phase 1: Foundation, Domain, and Persistence | `done` | Completed through `748db6f`; 49 tests passed, Ruff passed, and mypy passed. |
-| Phase 2: OpenStreetMap Discovery and Safe Crawling | `next session` | Start Tasks 7–13 in the next coding context window. |
-| Phase 3: Evidence Extraction, Contact Validation, and Scoring | `in queue` | Start only after Phase 2 is done and verified. |
+| Phase 2: OpenStreetMap Discovery and Safe Crawling | `done` | Completed through `1242a36`; 74 tests passed, Ruff passed, and mypy passed. |
+| Phase 3: Evidence Extraction, Contact Validation, and Scoring | `next session` | Start Tasks 14–20 in the next coding context window. |
 | Phase 4: Pipeline, Recovery, Exports, and Drafting | `in queue` | Start only after Phase 3 is done and verified. |
 | Phase 5: Local Review Interface and Release Verification | `in queue` | Start only after Phase 4 is done and verified. |
 
@@ -216,6 +216,45 @@ Record:
 - Overpass query fixture coverage.
 - URL/robots/fetch safety cases proved.
 - Exact maximum page count proved.
+
+### Phase 2 Completion Record
+
+**Completion commit:** `1242a36`
+
+**Task commits:**
+
+- Task 7: `1b3efe1` (`feat: build restaurant-only Overpass query`)
+- Task 8: `df0951d` (`feat: add bounded Overpass discovery adapter`)
+- Task 9: `69720f6` (`feat: reconcile duplicate restaurant identities`)
+- Task 10: `f37af64` (`feat: protect official-site crawling boundaries`)
+- Task 11: `b6949bc` (`feat: honor website robots policies`)
+- Task 12: `7336915` (`feat: fetch official pages within safety limits`)
+- Task 13: `1242a36` (`feat: enforce bounded restaurant site crawl`)
+
+**Exact final verification:**
+
+```text
+.venv/bin/pytest tests/adapters/overpass tests/adapters/crawler tests/domain/test_normalization.py tests/application/test_discovery.py -q
+25 passed in 0.47s
+
+.venv/bin/pytest -q
+74 passed in 0.61s
+
+.venv/bin/ruff check .
+All checks passed!
+
+.venv/bin/mypy app
+Success: no issues found in 37 source files
+
+git diff --check
+Passed with no output.
+```
+
+Playwright was not required for Phase 2. Offline fixtures and mock transports
+proved restaurant-only Overpass queries, public-network URL checks, robots
+allow/deny/missing/timeout outcomes, bounded fetching, and a maximum of six
+fetched official-site pages. No provider beyond OpenStreetMap Overpass, no
+Gmail/SMTP/sending capability, and no contact guessing were added.
 
 ## Phase 3: Evidence Extraction, Contact Validation, and Scoring
 

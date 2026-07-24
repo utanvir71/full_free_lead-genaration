@@ -20,3 +20,4 @@ models/
 credentials*.json
 token*.json
 .superpowers/
+.worktrees/

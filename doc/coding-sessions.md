@@ -28,8 +28,8 @@ Current status:
 | Phase 1: Foundation, Domain, and Persistence | `done` | Completed through `748db6f`; 49 tests passed, Ruff passed, and mypy passed. |
 | Phase 2: OpenStreetMap Discovery and Safe Crawling | `done` | Completed through `1242a36`; 74 tests passed, Ruff passed, and mypy passed. |
 | Phase 3: Evidence Extraction, Contact Validation, and Scoring | `done` | Completed through `a43fbc5`; 95 tests passed, Ruff passed, and mypy passed. |
-| Phase 4: Pipeline, Recovery, Exports, and Drafting | `next session` | Start Tasks 21–27 in the next coding context window. |
-| Phase 5: Local Review Interface and Release Verification | `in queue` | Start only after Phase 4 is done and verified. |
+| Phase 4: Pipeline, Recovery, Exports, and Drafting | `done` | Completed through `a312aad`; 109 tests passed, Ruff passed, and mypy passed. |
+| Phase 5: Local Review Interface and Release Verification | `next session` | Start Tasks 28–34 in the next coding context window. |
 
 After finishing any phase, update this status tracker before ending the
 session:
@@ -410,6 +410,43 @@ Record:
 - CSV row counts for fixtures.
 - Ollama failure modes and fallback cases.
 - Draft cap and evidence-guard cases.
+
+### Phase 4 Completion Record
+
+**Completion commit:** `a312aad`
+
+**Task commits:**
+
+- Task 21: `701565f` (`feat: orchestrate one restaurant research workflow`)
+- Task 22: `82e8db0` (`feat: execute resilient lead generation runs`)
+- Task 23: `77165da` (`feat: export qualified and rejected lead snapshots`)
+- Task 24: `34ea1f4` (`feat: select grounded draft candidates`)
+- Task 25: `0e1632c` (`feat: connect optional local Ollama drafting`)
+- Task 26: `c18ee86` (`feat: guard Ollama drafts against unsupported claims`)
+- Task 27: `a312aad` (`feat: persist safe fallback outreach drafts`)
+
+**Exact final verification:**
+
+```text
+.venv/bin/pytest tests/worker tests/application/test_exports.py tests/domain/test_draft_policy.py tests/application/test_fact_packets.py tests/adapters/ollama tests/application/test_draft_guard.py tests/application/test_draft_generator.py tests/application/test_fallback_draft.py tests/application/test_drafts.py -q
+14 passed in 0.12s
+
+.venv/bin/pytest -q
+109 passed in 0.80s
+
+.venv/bin/ruff check .
+All checks passed!
+
+.venv/bin/mypy app
+Success: no issues found in 64 source files
+
+git diff --check
+Passed with no output.
+```
+
+Playwright was not required for Phase 4. Tests use mock transports and local
+fixtures; no Gmail, SMTP, paid provider, sending capability, or guessed contact
+was added.
 
 ## Phase 5: Local Review Interface and Release Verification
 

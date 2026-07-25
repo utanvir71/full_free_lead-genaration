@@ -3,12 +3,14 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 
 from app.application.runs import ActiveRunError, RunService
+from app.data.us_places import cities_for_state, is_census_place
+from app.data.us_states import US_STATE_CODES, US_STATES
 from app.db import schema
 from app.web.security import csrf_token_for, verify_csrf
 
@@ -38,6 +40,7 @@ def _render_index(
             "runs": _run_history(request),
             "errors": errors or [],
             "values": values or {"city": "", "state": "", "candidate_limit": "30"},
+            "states": US_STATES,
             "csrf_token": csrf_token_for(request),
         },
         status_code=status_code,
@@ -47,6 +50,14 @@ def _render_index(
 @router.get("/runs", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
     return _render_index(request)
+
+
+@router.get("/runs/cities/{state}")
+def cities(state: str) -> dict[str, list[str]]:
+    state_code = state.upper()
+    if state_code not in US_STATE_CODES:
+        raise HTTPException(status_code=404, detail="State not found")
+    return {"cities": list(cities_for_state(state_code))}
 
 
 @router.post("/runs", response_class=HTMLResponse, response_model=None)
@@ -61,10 +72,12 @@ def create_run(
     clean_city = city.strip()
     clean_state = state.strip().upper()
     errors: list[str] = []
-    if not clean_city:
-        errors.append("City is required")
-    if len(clean_state) != 2 or not clean_state.isalpha():
-        errors.append("State must be a two-letter code")
+    if clean_state not in US_STATE_CODES:
+        errors.append("Choose a valid U.S. state")
+    elif not clean_city:
+        errors.append("Choose a Census place")
+    elif not is_census_place(clean_city, clean_state):
+        errors.append("Choose a Census place in the selected state")
     try:
         limit = int(candidate_limit)
     except ValueError:

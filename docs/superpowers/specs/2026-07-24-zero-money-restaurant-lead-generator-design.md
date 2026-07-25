@@ -49,7 +49,9 @@ The product must provide a practical middle ground:
 ### 4.1 Included
 
 - Localhost-only web interface.
-- Required U.S. city and state input.
+- Required U.S. state and Census-place input. The State selector appears first;
+  the City selector is populated only with the selected state's bundled Census
+  places.
 - Adjustable discovery limit from 1 to 100, defaulting to 30.
 - OpenStreetMap Overpass as the only discovery and geographic source.
 - Discovery restricted to `amenity=restaurant`.
@@ -154,12 +156,15 @@ app/
 
 The user enters:
 
-- City.
-- Two-letter U.S. state.
+- A U.S. state from a local selector.
+- A City from the selected state's local Census-place selector.
 - Candidate limit, default 30 and constrained to 1–100.
 
-The interface validates the fields, confirms that discovery uses public OSM
-infrastructure, and prevents more than one active run.
+The application bundles a processed Census Gazetteer places snapshot; selecting
+a state requests only its local city list from the application. The server
+validates that submitted city and state values form a valid Census-place pair.
+The interface confirms that discovery uses public OSM infrastructure and
+prevents more than one active run.
 
 ### 6.2 Monitor a run
 
@@ -223,9 +228,10 @@ projection for the selected run.
 
 ### 7.1 City resolution
 
-The state is resolved through a local two-letter state table and an Overpass
-administrative boundary carrying the matching `ISO3166-2` value. The city
-boundary must be nested within the selected state.
+The state is selected from a local state table and the city from that state's
+bundled Census-place list. The state is resolved through its `ISO3166-2`
+identifier in the Overpass administrative-boundary query. The city boundary
+must be nested within the selected state.
 
 If the boundary is ambiguous or unavailable, the run fails visibly instead of
 widening silently to the entire state.

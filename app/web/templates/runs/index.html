@@ -5,11 +5,21 @@
 {% for error in errors %}<p class="error">{{ error }}</p>{% endfor %}
 <form action="/runs" method="post">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  <label>City <input name="city" value="{{ values.city }}" required></label>
-  <label>State <input name="state" value="{{ values.state }}" maxlength="2" required></label>
+  <label for="state">State</label>
+  <select id="state" name="state" required>
+    <option value="">Select a state</option>
+    {% for code, name in states %}
+    <option value="{{ code }}"{% if values.state == code %} selected{% endif %}>{{ name }}</option>
+    {% endfor %}
+  </select>
+  <label for="city">City</label>
+  <select id="city" name="city" disabled required data-selected-city="{{ values.city }}">
+    <option value="">Select a state first</option>
+  </select>
   <label>Candidate limit <input name="candidate_limit" type="number" min="1" max="100" value="{{ values.candidate_limit }}"></label>
   <button type="submit">Start research</button>
 </form>
 <h2>Run history</h2>
 {% if runs %}<ul>{% for run in runs %}<li><a href="/runs/{{ run.id }}">{{ run.city }}, {{ run.state }}</a> — {{ run.status }}</li>{% endfor %}</ul>{% else %}<p>No runs yet</p>{% endif %}
 {% endblock %}
+{% block scripts %}<script src="/static/run-form.js"></script>{% endblock %}

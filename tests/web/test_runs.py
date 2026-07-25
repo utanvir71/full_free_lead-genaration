@@ -24,6 +24,45 @@ def test_runs_dashboard_renders_local_form_and_security_headers(tmp_path: Path) 
     assert f'value="{response.cookies["csrf_token"]}"' in response.text
 
 
+def test_runs_dashboard_renders_state_before_a_disabled_city_selector(
+    tmp_path: Path,
+) -> None:
+    response = make_client(tmp_path).get("/runs")
+
+    assert response.text.index('name="state"') < response.text.index('name="city"')
+    assert '<option value="TX">Texas</option>' in response.text
+    assert 'name="city" disabled' in response.text
+    assert 'src="/static/run-form.js"' in response.text
+
+
+def test_cities_endpoint_returns_places_only_for_the_selected_state(
+    tmp_path: Path,
+) -> None:
+    response = make_client(tmp_path).get("/runs/cities/TX")
+
+    assert response.status_code == 200
+    assert "Austin" in response.json()["cities"]
+
+
+def test_runs_rejects_a_city_outside_the_selected_state(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    form = client.get("/runs")
+
+    response = client.post(
+        "/runs",
+        data={
+            "city": "Austin",
+            "state": "CA",
+            "candidate_limit": "30",
+            "csrf_token": form.cookies["csrf_token"],
+        },
+        headers={"Origin": "http://testserver"},
+    )
+
+    assert response.status_code == 422
+    assert "Choose a Census place in the selected state" in response.text
+
+
 def test_runs_reject_invalid_input_without_creating_a_run(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     form = client.get("/runs")
@@ -40,8 +79,7 @@ def test_runs_reject_invalid_input_without_creating_a_run(tmp_path: Path) -> Non
     )
 
     assert response.status_code == 422
-    assert "City is required" in response.text
-    assert "State must be a two-letter code" in response.text
+    assert "Choose a valid U.S. state" in response.text
     assert "Limit must be between 1 and 100" in response.text
     assert "No runs yet" in response.text
 

@@ -557,6 +557,50 @@ The live smoke procedure was not run because it is explicitly opt-in and no
 separate authorization for a live Overpass request was given. Its bounded,
 zero-outreach procedure is documented in `docs/release-checklist.md`.
 
+## Post-Phase 5 Completion: Web Research Pipeline Wiring
+
+**Status:** completed. There is no remaining `next session` phase in the
+approved plan.
+
+**Completion commit:** `f2c6d65` (`feat: process discovered restaurants into local leads`)
+
+The web-run background task now continues after Overpass discovery by crawling
+only an OSM-supplied official website, honoring the existing crawler safeguards,
+extracting only public role-based contacts, creating evidence-backed assessments,
+writing local SQLite/text-file drafts for qualified leads, and creating both CSV
+exports. It never creates Gmail drafts, sends email, uses SMTP, adds paid
+providers, or guesses contact data. Ollama is used only when the configured
+local Gemma model is available; otherwise the existing grounded fallback draft
+is written locally.
+
+**Exact final verification:**
+
+```text
+.venv/bin/pytest tests/application/test_web_run_discovery.py -q
+5 passed in 2.16s
+
+.venv/bin/pytest -q
+139 passed in 8.83s
+
+.venv/bin/ruff check .
+All checks passed!
+
+.venv/bin/mypy app
+Success: no issues found in 77 source files
+
+.venv/bin/pytest tests/e2e -q
+1 passed in 17.36s
+
+git diff --check
+Passed with no output.
+```
+
+**Live browser smoke:** authorized one-candidate Alpha, NJ run
+`a7f81883-5de8-42a7-b6eb-2bd9dd98ca59`. It completed, persisted one rejected
+assessment, and displayed the precise reason that OpenStreetMap supplied no
+official website for that restaurant. The review page displayed the rejected
+lead. No outreach action occurred.
+
 ## New-Session Prompt
 
 Copy this into a fresh Codex session:

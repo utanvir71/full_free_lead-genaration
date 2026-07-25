@@ -4,6 +4,7 @@ from pathlib import Path
 from sqlalchemy import select
 
 from app.adapters.overpass.client import DiscoveryRequest
+from app.adapters.overpass.errors import OverpassRetryExhausted
 from app.adapters.overpass.parser import Candidate
 from app.application.runs import RunService
 from app.application.web_run_discovery import WebRunDiscovery
@@ -29,6 +30,12 @@ class FailingProvider:
     def discover(self, request: DiscoveryRequest) -> list[Candidate]:
         del request
         raise RuntimeError("provider unavailable")
+
+
+class BusyProvider:
+    def discover(self, request: DiscoveryRequest) -> list[Candidate]:
+        del request
+        raise OverpassRetryExhausted("Overpass returned retryable status 504")
 
 
 def make_running_engine(tmp_path: Path):
@@ -101,3 +108,19 @@ def test_execute_records_failure_and_marks_run_failed(tmp_path: Path) -> None:
             select(schema.errors.c.code).where(schema.errors.c.run_id == "run-1")
         ).all()
     assert error_codes == ["discovery_failed"]
+
+
+def test_execute_explains_when_the_public_overpass_server_is_busy(
+    tmp_path: Path,
+) -> None:
+    engine = make_running_engine(tmp_path)
+
+    WebRunDiscovery(engine, provider=BusyProvider(), clock=lambda: NOW).execute(
+        "run-1"
+    )
+
+    with engine.connect() as connection:
+        message = connection.scalar(
+            select(schema.errors.c.message).where(schema.errors.c.run_id == "run-1")
+        )
+    assert message == "OpenStreetMap is busy or timed out. Please try again later."

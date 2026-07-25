@@ -9,6 +9,7 @@ from uuid import NAMESPACE_URL, uuid5
 from sqlalchemy import Engine, insert, select, update
 
 from app.adapters.overpass.client import DiscoveryRequest
+from app.adapters.overpass.errors import OverpassRetryExhausted
 from app.adapters.overpass.parser import Candidate
 from app.application.discovery import DiscoveryService
 from app.db import schema
@@ -56,8 +57,8 @@ class WebRunDiscovery:
             DiscoveryService(self._engine, clock=self._clock).reconcile(
                 run_id, candidates
             )
-        except Exception:
-            self._fail_if_running(run_id)
+        except Exception as error:
+            self._fail_if_running(run_id, _failure_message(error))
             return
         self._complete_if_running(run_id)
 
@@ -98,7 +99,7 @@ class WebRunDiscovery:
                 )
             )
 
-    def _fail_if_running(self, run_id: str) -> None:
+    def _fail_if_running(self, run_id: str, message: str) -> None:
         now = self._clock()
         with self._engine.begin() as connection:
             status = connection.scalar(
@@ -124,9 +125,15 @@ class WebRunDiscovery:
                     job_id=None,
                     stage="discovery",
                     code="discovery_failed",
-                    message="Restaurant discovery failed. Try again later.",
+                    message=message,
                     retryable=True,
                     occurred_at=now,
                     idempotency_key=f"{run_id}:discovery_failed",
                 )
             )
+
+
+def _failure_message(error: Exception) -> str:
+    if isinstance(error, OverpassRetryExhausted):
+        return "OpenStreetMap is busy or timed out. Please try again later."
+    return "Restaurant discovery failed. Try again later."

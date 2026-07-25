@@ -12,6 +12,16 @@
   <button type="submit">Cancel run</button>
 </form>
 {% endif %}
+{% if candidates %}
+<section>
+  <h2>Discovered restaurants</h2>
+  <ul>
+  {% for candidate in candidates %}
+    <li><strong>{{ candidate.name_snapshot }}</strong>{% if candidate.website_snapshot %} — {{ candidate.website_snapshot }}{% endif %}{% if candidate.phone_snapshot %} — {{ candidate.phone_snapshot }}{% endif %}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
 {% if errors %}<section><h2>Research errors</h2><ul>{% for error in errors %}<li>{{ error.stage }}: {{ error.message }}</li>{% endfor %}</ul></section>{% endif %}
 <nav aria-label="Run actions"><a href="/runs/{{ run.id }}/leads">Review leads</a> · <a href="/runs/{{ run.id }}/drafts">Review drafts</a> · <a href="/runs/{{ run.id }}/exports/qualified">Download qualified CSV</a> · <a href="/runs/{{ run.id }}/exports/rejected">Download rejected CSV</a></nav>
 <script src="/static/progress.js"></script>

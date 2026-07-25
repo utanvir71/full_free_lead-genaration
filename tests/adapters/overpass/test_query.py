@@ -6,6 +6,11 @@ def test_builds_a_state_scoped_restaurant_only_query() -> None:
 
     assert '["ISO3166-2"="US-TX"]' in query
     assert '["name"="Austin"]' in query
+    assert (
+        'area(area.state)["boundary"="administrative"]["name"="Austin"]->.city;'
+        in query
+    )
+    assert "map_to_area" not in query
     assert 'node(area.city)["amenity"="restaurant"];' in query
     assert 'way(area.city)["amenity"="restaurant"];' in query
     assert 'relation(area.city)["amenity"="restaurant"];' in query

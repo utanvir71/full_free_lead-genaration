@@ -104,6 +104,43 @@ def test_progress_page_marks_terminal_run_for_polling_stop(tmp_path: Path) -> No
     assert client.get("/runs/run-1/progress").json()["terminal"] is True
 
 
+def test_progress_page_renders_persisted_discovered_restaurants(tmp_path: Path) -> None:
+    client, engine = make_client(tmp_path)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(schema.businesses).values(
+                id="northstar-grill",
+                name="Northstar Grill",
+                lead_status="new",
+                website="https://northstar.example",
+                phone="+1 512 555 0199",
+                address=None,
+                created_at=NOW,
+                updated_at=NOW,
+            )
+        )
+        connection.execute(
+            insert(schema.run_candidates).values(
+                id="candidate-northstar",
+                run_id="run-1",
+                business_id="northstar-grill",
+                osm_type="node",
+                osm_id="101",
+                name_snapshot="Northstar Grill",
+                website_snapshot="https://northstar.example",
+                phone_snapshot="+1 512 555 0199",
+                address_snapshot=None,
+                created_at=NOW,
+            )
+        )
+
+    response = client.get("/runs/run-1")
+
+    assert "Discovered restaurants" in response.text
+    assert "Northstar Grill" in response.text
+    assert "https://northstar.example" in response.text
+
+
 def test_active_run_can_be_cancelled(tmp_path: Path) -> None:
     client, _ = make_client(tmp_path)
     detail = client.get("/runs/run-1")

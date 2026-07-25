@@ -93,6 +93,15 @@ def detail(request: Request, run_id: str) -> HTMLResponse:
             .where(schema.errors.c.run_id == run_id)
             .order_by(schema.errors.c.occurred_at.desc())
         ).mappings().all()
+        candidates = connection.execute(
+            select(
+                schema.run_candidates.c.name_snapshot,
+                schema.run_candidates.c.website_snapshot,
+                schema.run_candidates.c.phone_snapshot,
+            )
+            .where(schema.run_candidates.c.run_id == run_id)
+            .order_by(schema.run_candidates.c.name_snapshot)
+        ).mappings().all()
     return templates.TemplateResponse(
         request,
         "runs/detail.html",
@@ -100,6 +109,7 @@ def detail(request: Request, run_id: str) -> HTMLResponse:
             "run": run,
             "progress": progress_data,
             "errors": errors,
+            "candidates": candidates,
             "csrf_token": csrf_token_for(request),
         },
     )

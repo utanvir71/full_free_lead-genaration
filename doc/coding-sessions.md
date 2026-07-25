@@ -629,6 +629,18 @@ received one local draft, and its run-specific CSV exports were regenerated
 **Exact verification:** 140 tests passed, Ruff passed, mypy passed for 77
 source files, one Playwright E2E test passed, and `git diff --check` passed.
 
+### Local Ollama Recovery
+
+**Completion commit:** `21b5ff0` (`fix: send grounded packets to local ollama`)
+
+Gemma was installed and ready, but draft generation sent the evidence packet in
+Ollama's `context` field, which accepts only token IDs and caused HTTP 400. The
+packet is now included in the generation prompt with an explicit required JSON
+shape (`subject`, `body`, `evidence_ids`). The local model returns a valid draft
+through that path. The default local timeout is now 120 seconds for the 4.3 GB
+Gemma model, while offline tests explicitly inject no model and remain fully
+deterministic.
+
 ## New-Session Prompt
 
 Copy this into a fresh Codex session:

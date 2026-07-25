@@ -6,11 +6,21 @@ from app.config import Settings
 from app.main import create_app
 
 
+class RecordingDiscovery:
+    def __init__(self) -> None:
+        self.run_ids: list[str] = []
+
+    def execute(self, run_id: str) -> None:
+        self.run_ids.append(run_id)
+
+
 def make_client(tmp_path: Path) -> TestClient:
     settings = Settings.load(
         {"LEADGEN_DATABASE_PATH": str(tmp_path / "leadgen.sqlite3")}
     )
-    return TestClient(create_app(settings))
+    client = TestClient(create_app(settings))
+    client.app.state.web_run_discovery = RecordingDiscovery()
+    return client
 
 
 def test_runs_dashboard_renders_local_form_and_security_headers(tmp_path: Path) -> None:
@@ -105,6 +115,27 @@ def test_runs_creates_a_persisted_run_with_valid_csrf_and_origin(
     assert response.status_code == 303
     assert response.headers["location"].startswith("/runs/")
     assert "Austin, TX" in client.get("/runs").text
+
+
+def test_creating_a_run_schedules_local_discovery(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    recorder = client.app.state.web_run_discovery
+    form = client.get("/runs")
+
+    response = client.post(
+        "/runs",
+        data={
+            "city": "Austin",
+            "state": "TX",
+            "candidate_limit": "2",
+            "csrf_token": form.cookies["csrf_token"],
+        },
+        headers={"Origin": "http://testserver"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert recorder.run_ids == [response.headers["location"].rsplit("/", 1)[-1]]
 
 
 def test_runs_rejects_cross_origin_or_missing_csrf(tmp_path: Path) -> None:

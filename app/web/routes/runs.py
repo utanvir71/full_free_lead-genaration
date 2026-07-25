@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -63,6 +63,7 @@ def cities(state: str) -> dict[str, list[str]]:
 @router.post("/runs", response_class=HTMLResponse, response_model=None)
 def create_run(
     request: Request,
+    background_tasks: BackgroundTasks,
     city: str = Form(default=""),
     state: str = Form(default=""),
     candidate_limit: str = Form(default="30"),
@@ -111,4 +112,5 @@ def create_run(
             values=values,
             status_code=409,
         )
+    background_tasks.add_task(request.app.state.web_run_discovery.execute, run_id)
     return RedirectResponse(url=f"/runs/{run_id}", status_code=303)

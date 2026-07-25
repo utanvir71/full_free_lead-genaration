@@ -21,10 +21,16 @@ class LiveApp:
     base_url: str
 
 
+class NoopDiscovery:
+    def execute(self, run_id: str) -> None:
+        del run_id
+
+
 @pytest.fixture
 def live_app(tmp_path) -> Iterator[LiveApp]:
     settings = Settings.load({"LEADGEN_DATABASE_PATH": str(tmp_path / "db.sqlite3")})
     app = create_app(settings)
+    app.state.web_run_discovery = NoopDiscovery()
     socket_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     socket_.bind(("127.0.0.1", 0))
     socket_.listen()

@@ -1,6 +1,10 @@
+from datetime import datetime
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app.adapters.overpass.client import OverpassClient
+from app.application.web_run_discovery import WebRunDiscovery
 from app.config import Settings
 from app.db.session import create_engine_for, migrate_database
 from app.web.routes.drafts import router as drafts_router
@@ -17,6 +21,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings if settings is not None else Settings.load()
     app.state.engine = create_engine_for(app.state.settings)
     migrate_database(app.state.engine)
+    app.state.web_run_discovery = WebRunDiscovery(
+        app.state.engine,
+        provider=OverpassClient(app.state.settings),
+        clock=lambda: datetime.now().astimezone(),
+    )
     app.add_middleware(SecurityMiddleware)
     app.mount("/static", StaticFiles(directory="app/web/static"), name="static")
     app.include_router(runs_router)

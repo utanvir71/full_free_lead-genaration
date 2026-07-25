@@ -11,6 +11,17 @@ from app.db import schema
 from app.main import create_app
 
 
+class NoopDiscovery:
+    def execute(self, run_id: str) -> None:
+        del run_id
+
+
+def make_client(settings: Settings) -> TestClient:
+    client = TestClient(create_app(settings))
+    client.app.state.web_run_discovery = NoopDiscovery()
+    return client
+
+
 def seed_completed_run(engine: Engine, run_id: str, tmp_path: Path) -> None:
     now = datetime(2026, 7, 25, tzinfo=UTC)
     qualified = tmp_path / "qualified_leads.csv"
@@ -212,7 +223,7 @@ def seed_completed_run(engine: Engine, run_id: str, tmp_path: Path) -> None:
 
 def test_operator_can_review_a_completed_fixture_run(tmp_path: Path) -> None:
     settings = Settings.load({"LEADGEN_DATABASE_PATH": str(tmp_path / "db.sqlite3")})
-    client = TestClient(create_app(settings))
+    client = make_client(settings)
     form = client.get("/runs")
     response = client.post(
         "/runs",
@@ -268,7 +279,7 @@ def test_interrupted_partial_results_survive_an_application_restart(
     tmp_path: Path,
 ) -> None:
     settings = Settings.load({"LEADGEN_DATABASE_PATH": str(tmp_path / "db.sqlite3")})
-    client = TestClient(create_app(settings))
+    client = make_client(settings)
     form = client.get("/runs")
     response = client.post(
         "/runs",
@@ -290,7 +301,7 @@ def test_interrupted_partial_results_survive_an_application_restart(
             .values(status="interrupted")
         )
 
-    restarted = TestClient(create_app(settings))
+    restarted = make_client(settings)
 
     assert "interrupted" in restarted.get(f"/runs/{run_id}").text
     assert "Elm House" in restarted.get("/leads/elm-house").text

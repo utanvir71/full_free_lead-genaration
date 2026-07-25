@@ -545,6 +545,27 @@ def _signal_research(
             evidence["call_required"] = (fact.fact_id,)
         if fact.fact_type in {"private_events", "catering"}:
             evidence[fact.fact_type] = (fact.fact_id,)
+    public_phone_facts = [
+        fact
+        for fact in facts
+        if fact.fact_type == "phone" and fact.state is FactState.PRESENT
+    ]
+    public_phone_contacts = [contact for contact in contacts if contact.kind == "phone"]
+    if public_phone_facts:
+        evidence["phone_prominent"] = tuple(fact.fact_id for fact in public_phone_facts)
+    elif public_phone_contacts:
+        evidence["phone_prominent"] = tuple(
+            evidence_id
+            for contact in public_phone_contacts
+            for evidence_id in contact.evidence_ids
+        )
+    hour_facts = [
+        fact
+        for fact in facts
+        if fact.fact_type == "hours" and fact.state is FactState.PRESENT
+    ]
+    if len(hour_facts) >= 5 and len({str(fact.value) for fact in hour_facts}) >= 2:
+        evidence["complex_hours"] = tuple(fact.fact_id for fact in hour_facts)
     return {
         "complete_crawl": result.complete,
         "call_to_reserve": "call_required" in evidence,
@@ -553,6 +574,8 @@ def _signal_research(
         ),
         "private_events": "private_events" in evidence,
         "catering": "catering" in evidence,
+        "phone_prominent": "phone_prominent" in evidence,
+        "complex_hours": "complex_hours" in evidence,
         "contact_route": bool(contacts),
         "evidence_ids": evidence,
     }

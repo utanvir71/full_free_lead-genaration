@@ -91,6 +91,31 @@ class FakeCrawler:
         )
 
 
+class EvidenceRichCrawler:
+    def crawl(self, official_url: str) -> CrawlResult:
+        page = FetchedPage(
+            url=official_url,
+            http_status=200,
+            fetched_at=NOW,
+            html=(
+                "<html><body>Call us to make a reservation. (512) 555-0100"
+                '<span itemprop="openingHours">Monday 11:00-21:00</span>'
+                '<span itemprop="openingHours">Tuesday 11:00-21:00</span>'
+                '<span itemprop="openingHours">Wednesday 11:00-21:00</span>'
+                '<span itemprop="openingHours">Thursday 11:00-21:00</span>'
+                '<span itemprop="openingHours">Friday 11:00-22:00</span>'
+                '<span itemprop="openingHours">Saturday 10:00-22:00</span>'
+                '<span itemprop="openingHours">Sunday 10:00-20:00</span>'
+                "</body></html>"
+            ),
+        )
+        return CrawlResult(
+            pages=(page,),
+            manifest=CrawlManifest((), (), (), (), (official_url,), ()),
+            complete=True,
+        )
+
+
 def run_status(engine) -> str:
     with engine.connect() as connection:
         return str(
@@ -195,6 +220,54 @@ def test_research_processor_persists_qualified_lead_draft_and_exports(
     assert draft_count == 1
     assert len(exports) == 2
     assert all(Path(path).is_file() for path in exports)
+
+
+def test_research_processor_scores_verified_phone_and_complex_hours(
+    tmp_path: Path,
+) -> None:
+    engine = make_running_engine(tmp_path)
+    settings = Settings.load(
+        {
+            "LEADGEN_DATABASE_PATH": str(tmp_path / "leadgen.sqlite3"),
+            "LEADGEN_EXPORT_DIRECTORY": str(tmp_path / "exports"),
+        }
+    )
+    discovered = Candidate(
+        osm_type="node",
+        osm_id=102,
+        latitude=30.2672,
+        longitude=-97.7431,
+        tags={"name": "Evidence Grill", "website": "https://evidence.example"},
+    )
+    WebRunDiscovery(
+        engine,
+        provider=FakeProvider([discovered]),
+        clock=lambda: NOW,
+        processor=RunResearchProcessor(
+            engine,
+            settings=settings,
+            clock=lambda: NOW,
+            crawler=EvidenceRichCrawler(),
+        ),
+    ).execute("run-1")
+
+    with engine.connect() as connection:
+        assessment = (
+            connection.execute(
+                select(schema.assessments).where(schema.assessments.c.run_id == "run-1")
+            )
+            .mappings()
+            .one()
+        )
+        signals = connection.execute(
+            select(schema.score_signals.c.signal, schema.score_signals.c.state).where(
+                schema.score_signals.c.assessment_id == assessment["id"]
+            )
+        ).all()
+    assert assessment["total"] == 7
+    assert assessment["qualified"] is True
+    assert ("phone_prominent", "awarded") in signals
+    assert ("complex_hours", "awarded") in signals
 
 
 def test_execute_records_failure_and_marks_run_failed(tmp_path: Path) -> None:

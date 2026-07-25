@@ -190,7 +190,11 @@ def test_research_processor_persists_qualified_lead_draft_and_exports(
         provider=FakeProvider([discovered]),
         clock=lambda: NOW,
         processor=RunResearchProcessor(
-            engine, settings=settings, clock=lambda: NOW, crawler=FakeCrawler()
+            engine,
+            settings=settings,
+            clock=lambda: NOW,
+            crawler=FakeCrawler(),
+            draft_model_factory=lambda _settings: None,
         ),
     ).execute("run-1")
 
@@ -248,6 +252,7 @@ def test_research_processor_scores_verified_phone_and_complex_hours(
             settings=settings,
             clock=lambda: NOW,
             crawler=EvidenceRichCrawler(),
+            draft_model_factory=lambda _settings: None,
         ),
     ).execute("run-1")
 

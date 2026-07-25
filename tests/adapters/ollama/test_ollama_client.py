@@ -29,6 +29,11 @@ def test_ollama_generation_uses_approved_local_defaults() -> None:
         "temperature": 0.4,
         "num_predict": 220,
     }
+    assert "context" not in payload
+    assert '"facts":[]' in payload["prompt"]
+    assert '"subject"' in payload["prompt"]
+    assert '"body"' in payload["prompt"]
+    assert '"evidence_ids"' in payload["prompt"]
 
 
 def test_ollama_readiness_reports_missing_service_without_raising() -> None:

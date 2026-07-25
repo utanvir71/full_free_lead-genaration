@@ -85,11 +85,14 @@ class RunResearchProcessor:
         settings: Settings,
         clock: Callable[[], datetime],
         crawler: Crawler | None = None,
+        draft_model_factory: Callable[[Settings], OllamaDraftModel | None]
+        | None = None,
     ) -> None:
         self._engine = engine
         self._settings = settings
         self._clock = clock
         self._crawler = crawler or _build_crawler(settings)
+        self._draft_model_factory = draft_model_factory or _draft_model
 
     def process(self, run_id: str) -> None:
         for candidate in self._candidates(run_id):
@@ -347,7 +350,7 @@ class RunResearchProcessor:
                 .mappings()
                 .all()
             )
-        model = _draft_model(self._settings)
+        model = self._draft_model_factory(self._settings)
         for row in rows:
             facts = self._valid_facts(run_id, str(row["id"]))
             packet = FactPacket(

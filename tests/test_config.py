@@ -19,7 +19,7 @@ def test_load_uses_exact_safe_defaults() -> None:
     assert settings.ollama_context == 8192
     assert settings.ollama_temperature == 0.4
     assert settings.ollama_max_output_tokens == 220
-    assert settings.ollama_timeout_seconds == 45.0
+    assert settings.ollama_timeout_seconds == 120.0
     assert settings.export_directory == Path("exports")
 
 

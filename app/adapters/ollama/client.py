@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
@@ -25,7 +26,7 @@ class OllamaClient:
         *,
         endpoint: str,
         model: str = "gemma4:e2b-it-qat",
-        timeout_seconds: float = 45.0,
+        timeout_seconds: float = 120.0,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         self._endpoint = endpoint.rstrip("/")
@@ -56,12 +57,16 @@ class OllamaClient:
         payload = {
             "model": self._model,
             "prompt": (
-                "Generate a grounded restaurant outreach draft from this JSON packet."
+                "Generate a grounded restaurant outreach draft from this JSON packet. "
+                "Return only a JSON object with exactly these fields: "
+                '{"subject":"...","body":"...","evidence_ids":["..."]}. '
+                "Use only evidence_ids present in the packet. Do not invent facts, "
+                "names, contact details, or links.\n\nPacket:\n"
+                f"{json.dumps(packet, separators=(',', ':'))}"
             ),
             "format": schema,
             "stream": False,
             "options": {"num_ctx": 8192, "temperature": 0.4, "num_predict": 220},
-            "context": packet,
         }
         try:
             with self._client() as client:

@@ -25,7 +25,7 @@ class Settings(BaseModel):
     ollama_context: int = Field(default=8192, gt=0)
     ollama_temperature: float = Field(default=0.4, ge=0, le=1)
     ollama_max_output_tokens: int = Field(default=220, gt=0)
-    ollama_timeout_seconds: float = Field(default=45.0, gt=0)
+    ollama_timeout_seconds: float = Field(default=120.0, gt=0)
     export_directory: Path = Path("exports")
 
     _ENV_FIELDS: ClassVar[dict[str, str]] = {

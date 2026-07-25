@@ -22,7 +22,8 @@ def build_restaurant_query(city: str, state: str, limit: int) -> str:
         (
             "[out:json][timeout:25];",
             f'area["boundary"="administrative"]["admin_level"="4"]["ISO3166-2"={state_value}]->.state;',
-            f'area(area.state)["boundary"="administrative"]["name"={city_value}]->.city;',
+            f'rel(area.state)["boundary"="administrative"]["admin_level"~"^(8|9)$"]["name"={city_value}]->.city_relation;',
+            ".city_relation map_to_area -> .city;",
             "(",
             '  node(area.city)["amenity"="restaurant"];',
             '  way(area.city)["amenity"="restaurant"];',

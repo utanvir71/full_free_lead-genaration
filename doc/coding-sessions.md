@@ -601,6 +601,18 @@ assessment, and displayed the precise reason that OpenStreetMap supplied no
 official website for that restaurant. The review page displayed the rejected
 lead. No outreach action occurred.
 
+### Discovery Boundary Recovery
+
+**Completion commit:** `554033e` (`fix: constrain city discovery to selected state`)
+
+The city lookup now resolves an administrative city relation inside the selected
+state before converting it to an Overpass area. This prevents a city name such
+as Abbeville, GA from returning same-named restaurants in France. A focused
+query contract test and the full quality gate passed: 139 tests, Ruff, mypy for
+77 source files, and one Playwright E2E test. The public Overpass service was
+intermittently returning 504 during post-fix live validation, so no additional
+live run was treated as evidence.
+
 ## New-Session Prompt
 
 Copy this into a fresh Codex session:

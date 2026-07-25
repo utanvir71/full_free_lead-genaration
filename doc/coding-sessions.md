@@ -613,6 +613,22 @@ query contract test and the full quality gate passed: 139 tests, Ruff, mypy for
 intermittently returning 504 during post-fix live validation, so no additional
 live run was treated as evidence.
 
+### Scoring Evidence Recovery
+
+**Completion commit:** `6dfb1fd` (`fix: score verified phone and complex hours`)
+
+The web researcher now converts verified official-site phone evidence and a
+genuinely varied, seven-day official hours schedule into the existing
+`phone_prominent` and `complex_hours` score signals. The qualification threshold
+remains 6; no score or contact is fabricated. The previously completed Austin
+run `de5c9ff0-c491-42ba-ab8b-c7a84571f23e` was safely re-scored from its already
+stored evidence: The Cheesecake Factory changed from 5 to 7, became qualified,
+received one local draft, and its run-specific CSV exports were regenerated
+(one qualified row and 29 rejected rows).
+
+**Exact verification:** 140 tests passed, Ruff passed, mypy passed for 77
+source files, one Playwright E2E test passed, and `git diff --check` passed.
+
 ## New-Session Prompt
 
 Copy this into a fresh Codex session:

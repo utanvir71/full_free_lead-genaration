@@ -21,6 +21,10 @@ class DiscoveryProvider(Protocol):
     def discover(self, request: DiscoveryRequest) -> list[Candidate]: ...
 
 
+class RunProcessor(Protocol):
+    def process(self, run_id: str) -> None: ...
+
+
 @dataclass(frozen=True, slots=True)
 class _RunningRun:
     city: str
@@ -35,10 +39,12 @@ class WebRunDiscovery:
         *,
         provider: DiscoveryProvider,
         clock: Callable[[], datetime],
+        processor: RunProcessor | None = None,
     ) -> None:
         self._engine = engine
         self._provider = provider
         self._clock = clock
+        self._processor = processor
 
     def execute(self, run_id: str) -> None:
         run = self._running_run(run_id)
@@ -57,6 +63,8 @@ class WebRunDiscovery:
             DiscoveryService(self._engine, clock=self._clock).reconcile(
                 run_id, candidates
             )
+            if self._processor is not None and self._running_run(run_id) is not None:
+                self._processor.process(run_id)
         except Exception as error:
             self._fail_if_running(run_id, _failure_message(error))
             return
@@ -64,14 +72,18 @@ class WebRunDiscovery:
 
     def _running_run(self, run_id: str) -> _RunningRun | None:
         with self._engine.connect() as connection:
-            row = connection.execute(
-                select(
-                    schema.runs.c.city,
-                    schema.runs.c.state,
-                    schema.runs.c.candidate_limit,
-                    schema.runs.c.status,
-                ).where(schema.runs.c.id == run_id)
-            ).mappings().one_or_none()
+            row = (
+                connection.execute(
+                    select(
+                        schema.runs.c.city,
+                        schema.runs.c.state,
+                        schema.runs.c.candidate_limit,
+                        schema.runs.c.status,
+                    ).where(schema.runs.c.id == run_id)
+                )
+                .mappings()
+                .one_or_none()
+            )
         if row is None or row["status"] != RunStatus.RUNNING.value:
             return None
         return _RunningRun(
@@ -92,9 +104,7 @@ class WebRunDiscovery:
                 update(schema.runs)
                 .where(schema.runs.c.id == run_id)
                 .values(
-                    status=transition_run(
-                        RunStatus.RUNNING, RunStatus.COMPLETED
-                    ).value,
+                    status=transition_run(RunStatus.RUNNING, RunStatus.COMPLETED).value,
                     finished_at=now,
                 )
             )
@@ -111,9 +121,7 @@ class WebRunDiscovery:
                 update(schema.runs)
                 .where(schema.runs.c.id == run_id)
                 .values(
-                    status=transition_run(
-                        RunStatus.RUNNING, RunStatus.FAILED
-                    ).value,
+                    status=transition_run(RunStatus.RUNNING, RunStatus.FAILED).value,
                     finished_at=now,
                 )
             )

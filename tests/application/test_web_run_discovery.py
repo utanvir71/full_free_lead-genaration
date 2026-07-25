@@ -1,11 +1,14 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
+from app.adapters.crawler.fetcher import FetchedPage
+from app.adapters.crawler.site_crawler import CrawlManifest, CrawlResult
 from app.adapters.overpass.client import DiscoveryRequest
 from app.adapters.overpass.errors import OverpassRetryExhausted
 from app.adapters.overpass.parser import Candidate
+from app.application.run_research import RunResearchProcessor
 from app.application.runs import RunService
 from app.application.web_run_discovery import WebRunDiscovery
 from app.config import Settings
@@ -38,6 +41,14 @@ class BusyProvider:
         raise OverpassRetryExhausted("Overpass returned retryable status 504")
 
 
+class RecordingProcessor:
+    def __init__(self) -> None:
+        self.run_ids: list[str] = []
+
+    def process(self, run_id: str) -> None:
+        self.run_ids.append(run_id)
+
+
 def make_running_engine(tmp_path: Path):
     settings = Settings.load(
         {"LEADGEN_DATABASE_PATH": str(tmp_path / "leadgen.sqlite3")}
@@ -58,6 +69,26 @@ def candidate() -> Candidate:
         longitude=-97.7431,
         tags={"name": "Northstar Grill", "amenity": "restaurant"},
     )
+
+
+class FakeCrawler:
+    def crawl(self, official_url: str) -> CrawlResult:
+        assert official_url == "https://northstar.example"
+        page = FetchedPage(
+            url=official_url,
+            http_status=200,
+            fetched_at=NOW,
+            html=(
+                "<html><body>Call us to make a reservation. "
+                "Private events and catering are available. "
+                "Email events@northstar.example.</body></html>"
+            ),
+        )
+        return CrawlResult(
+            pages=(page,),
+            manifest=CrawlManifest((), (), (), (), (official_url,), ()),
+            complete=True,
+        )
 
 
 def run_status(engine) -> str:
@@ -95,6 +126,77 @@ def test_execute_reconciles_candidates_and_completes_a_running_run(
     assert candidate_count(engine) == 1
 
 
+def test_execute_processes_discovered_candidates_before_completion(
+    tmp_path: Path,
+) -> None:
+    engine = make_running_engine(tmp_path)
+    processor = RecordingProcessor()
+
+    WebRunDiscovery(
+        engine,
+        provider=FakeProvider([candidate()]),
+        clock=lambda: NOW,
+        processor=processor,
+    ).execute("run-1")
+
+    assert processor.run_ids == ["run-1"]
+    assert run_status(engine) == RunStatus.COMPLETED.value
+
+
+def test_research_processor_persists_qualified_lead_draft_and_exports(
+    tmp_path: Path,
+) -> None:
+    engine = make_running_engine(tmp_path)
+    settings = Settings.load(
+        {
+            "LEADGEN_DATABASE_PATH": str(tmp_path / "leadgen.sqlite3"),
+            "LEADGEN_EXPORT_DIRECTORY": str(tmp_path / "exports"),
+        }
+    )
+    discovered = Candidate(
+        osm_type="node",
+        osm_id=101,
+        latitude=30.2672,
+        longitude=-97.7431,
+        tags={"name": "Northstar Grill", "website": "https://northstar.example"},
+    )
+    WebRunDiscovery(
+        engine,
+        provider=FakeProvider([discovered]),
+        clock=lambda: NOW,
+        processor=RunResearchProcessor(
+            engine, settings=settings, clock=lambda: NOW, crawler=FakeCrawler()
+        ),
+    ).execute("run-1")
+
+    with engine.connect() as connection:
+        assessment = (
+            connection.execute(
+                select(schema.assessments).where(schema.assessments.c.run_id == "run-1")
+            )
+            .mappings()
+            .one()
+        )
+        draft_count = connection.scalar(
+            select(func.count())
+            .select_from(schema.drafts)
+            .where(schema.drafts.c.run_id == "run-1")
+        )
+        exports = (
+            connection.execute(
+                select(schema.exports.c.file_path).where(
+                    schema.exports.c.run_id == "run-1"
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert assessment["qualified"] is True
+    assert draft_count == 1
+    assert len(exports) == 2
+    assert all(Path(path).is_file() for path in exports)
+
+
 def test_execute_records_failure_and_marks_run_failed(tmp_path: Path) -> None:
     engine = make_running_engine(tmp_path)
 
@@ -115,9 +217,7 @@ def test_execute_explains_when_the_public_overpass_server_is_busy(
 ) -> None:
     engine = make_running_engine(tmp_path)
 
-    WebRunDiscovery(engine, provider=BusyProvider(), clock=lambda: NOW).execute(
-        "run-1"
-    )
+    WebRunDiscovery(engine, provider=BusyProvider(), clock=lambda: NOW).execute("run-1")
 
     with engine.connect() as connection:
         message = connection.scalar(

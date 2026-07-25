@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.adapters.overpass.client import OverpassClient
+from app.application.run_research import RunResearchProcessor
 from app.application.web_run_discovery import WebRunDiscovery
 from app.config import Settings
 from app.db.session import create_engine_for, migrate_database
@@ -25,6 +26,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.engine,
         provider=OverpassClient(app.state.settings),
         clock=lambda: datetime.now().astimezone(),
+        processor=RunResearchProcessor(
+            app.state.engine,
+            settings=app.state.settings,
+            clock=lambda: datetime.now().astimezone(),
+        ),
     )
     app.add_middleware(SecurityMiddleware)
     app.mount("/static", StaticFiles(directory="app/web/static"), name="static")

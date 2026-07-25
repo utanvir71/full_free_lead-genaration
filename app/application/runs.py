@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 
 from sqlalchemy import Engine
@@ -74,6 +74,23 @@ class RunService:
             status=running_status,
             created_at=queued.created_at,
             started_at=now,
+        )
+    def cancel(self, run_id: str) -> RunRecord:
+        now = self._clock()
+        with SqlAlchemyUnitOfWork(self._engine) as unit_of_work:
+            run = unit_of_work.runs.get(run_id)
+            if run is None:
+                raise RunNotFoundError(run_id)
+            cancelled_status = transition_run(run.status, RunStatus.CANCELLED)
+            unit_of_work.runs.update_status(
+                run_id,
+                cancelled_status,
+                finished_at=now,
+            )
+        return replace(
+            run,
+            status=cancelled_status,
+            finished_at=now,
         )
 
     def progress(self, run_id: str) -> RunProgress:

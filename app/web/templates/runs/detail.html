@@ -6,6 +6,12 @@
   <p>Status: <strong>{{ progress.status }}</strong></p>
   <dl><dt>Discovered</dt><dd>{{ progress.discovered }}</dd><dt>Pending</dt><dd>{{ progress.pending }}</dd><dt>Processing</dt><dd>{{ progress.processing }}</dd><dt>Qualified</dt><dd>{{ progress.qualified }}</dd><dt>Rejected</dt><dd>{{ progress.rejected }}</dd><dt>Drafted</dt><dd>{{ progress.drafted }}</dd><dt>Failed</dt><dd>{{ progress.failed }}</dd></dl>
 </section>
+{% if not progress.terminal %}
+<form action="/runs/{{ run.id }}/cancel" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit">Cancel run</button>
+</form>
+{% endif %}
 {% if errors %}<section><h2>Research errors</h2><ul>{% for error in errors %}<li>{{ error.stage }}: {{ error.message }}</li>{% endfor %}</ul></section>{% endif %}
 <nav aria-label="Run actions"><a href="/runs/{{ run.id }}/leads">Review leads</a> · <a href="/runs/{{ run.id }}/drafts">Review drafts</a> · <a href="/runs/{{ run.id }}/exports/qualified">Download qualified CSV</a> · <a href="/runs/{{ run.id }}/exports/rejected">Download rejected CSV</a></nav>
 <script src="/static/progress.js"></script>

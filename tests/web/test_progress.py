@@ -102,3 +102,23 @@ def test_progress_page_marks_terminal_run_for_polling_stop(tmp_path: Path) -> No
     assert response.status_code == 200
     assert 'data-terminal="true"' in response.text
     assert client.get("/runs/run-1/progress").json()["terminal"] is True
+
+
+def test_active_run_can_be_cancelled(tmp_path: Path) -> None:
+    client, _ = make_client(tmp_path)
+    detail = client.get("/runs/run-1")
+
+    assert 'action="/runs/run-1/cancel"' in detail.text
+    assert "Cancel run" in detail.text
+
+    response = client.post(
+        "/runs/run-1/cancel",
+        data={"csrf_token": detail.cookies["csrf_token"]},
+        headers={"Origin": "http://testserver"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    progress = client.get("/runs/run-1/progress").json()
+    assert progress["status"] == "cancelled"
+    assert progress["terminal"] is True

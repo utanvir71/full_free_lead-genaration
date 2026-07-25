@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from datetime import datetime
+
+from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.sql import ColumnElement, FromClause
 
+from app.application.runs import RunNotFoundError, RunService
 from app.db import schema
 from app.domain.enums import JobStatus, RunStatus
+from app.domain.lifecycle import InvalidRunTransition
+from app.web.security import csrf_token_for, verify_csrf
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/web/templates")
@@ -91,5 +96,34 @@ def detail(request: Request, run_id: str) -> HTMLResponse:
     return templates.TemplateResponse(
         request,
         "runs/detail.html",
-        {"run": run, "progress": progress_data, "errors": errors},
+        {
+            "run": run,
+            "progress": progress_data,
+            "errors": errors,
+            "csrf_token": csrf_token_for(request),
+        },
     )
+
+
+@router.post("/runs/{run_id}/cancel")
+def cancel_run(
+    request: Request,
+    run_id: str,
+    csrf_token: str = Form(default=""),
+) -> RedirectResponse:
+    verify_csrf(request, csrf_token)
+    service = RunService(
+        request.app.state.engine,
+        clock=lambda: datetime.now().astimezone(),
+    )
+    try:
+        service.cancel(run_id)
+    except RunNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Run not found") from error
+    except InvalidRunTransition as error:
+        raise HTTPException(
+            status_code=409,
+            detail="Only an active run can be cancelled",
+        ) from error
+
+    return RedirectResponse(url=f"/runs/{run_id}", status_code=303)
